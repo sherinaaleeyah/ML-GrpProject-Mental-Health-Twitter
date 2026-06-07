@@ -104,9 +104,11 @@ def build_feature_row(text, followers, friends, favourites, statuses, retweets):
 def predict(feature_row):
     """Run imputation → scaling → model prediction."""
     X = pd.DataFrame([feature_row], columns=FEATURE_COLS)
-    X = pd.DataFrame(imputer.transform(X),  columns=FEATURE_COLS)
-    X = pd.DataFrame(scaler.transform(X),   columns=FEATURE_COLS)
-    prob  = model.predict_proba(X)[0][1]   # probability of class 1 (depressed)
+    # Force all columns to float64 to match training dtype
+    X = X.astype(np.float64)
+    X_imp = pd.DataFrame(imputer.transform(X), columns=FEATURE_COLS).astype(np.float64)
+    X_sca = pd.DataFrame(scaler.transform(X_imp), columns=FEATURE_COLS).astype(np.float64)
+    prob  = model.predict_proba(X_sca)[0][1]
     label = int(prob >= 0.5)
     return label, prob
 
@@ -255,9 +257,9 @@ with tab2:
                             int(row.get('retweets',   0)),
                         ))
 
-                    X_batch = pd.DataFrame(rows, columns=FEATURE_COLS)
-                    X_batch = pd.DataFrame(imputer.transform(X_batch), columns=FEATURE_COLS)
-                    X_batch = pd.DataFrame(scaler.transform(X_batch),  columns=FEATURE_COLS)
+                    X_batch = pd.DataFrame(rows, columns=FEATURE_COLS).astype(np.float64)
+                    X_batch = pd.DataFrame(imputer.transform(X_batch), columns=FEATURE_COLS).astype(np.float64)
+                    X_batch = pd.DataFrame(scaler.transform(X_batch),  columns=FEATURE_COLS).astype(np.float64)
 
                     probs  = model.predict_proba(X_batch)[:, 1]
                     labels = (probs >= 0.5).astype(int)
